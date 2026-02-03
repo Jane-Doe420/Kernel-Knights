@@ -316,6 +316,14 @@ def clean_json_str(raw_str: str) -> str:
     cleaned = re.sub(r"```\s*$", "", cleaned)
     return cleaned.strip()
 
+#-------------------------------------------------------------------------------------------------
+
+@app.get("/health")
+async def health_check():
+    return {"status": "active", "service": "guvi-honeypot"}
+
+#-------------------------------------------------------------------------------------------------
+
 # --- Core Endpoint ---
 @app.post("/api/chat", response_model=AgentResponse)
 async def chat_endpoint(
