@@ -368,22 +368,66 @@ async def chat_endpoint(
     # 2. Scam Detection (If not yet confirmed)
     # We initialize agent_notes with a default, but try to overwrite it from detector
     current_agent_notes = "Monitoring conversation..." 
-    
+
+#-----------------------------------------------------------------------------------------------------------   
+    # if not is_scam_confirmed:
+    #     detector = get_detector_agent()
+    #     try:
+    #         raw_response = detector.run(user_text).content
+    #         detection_data = json.loads(clean_json_str(raw_response))
+            
+    #         is_scam = detection_data.get("is_scam", False)
+    #         reasoning = detection_data.get("reasoning", "Unknown")
+    #         # NEW: Capture dynamic notes
+    #         behavior_summary = detection_data.get("behavior_summary", "Scam intent detected.")
+            
+    #         if is_scam:
+    #             is_scam_confirmed = True
+    #             state_service.set_scam_status(session_id, True)
+    #             current_agent_notes = behavior_summary # Update notes
+    #             logger.info(f"Session {session_id}: SCAM DETECTED. Notes: {behavior_summary}")
+    #         else:
+    #             return AgentResponse(
+    #                 status="success",
+    #                 scamDetected=False,
+    #                 response_text="Sorry, I think you have the wrong number.",
+    #                 extractedIntelligence=current_intel
+    #             )
+    #     except Exception as e:
+    #         logger.error(f"Detector Failed: {e}")
+    #         return AgentResponse(
+    #             status="success",
+    #             scamDetected=False,
+    #             response_text="Hello? Who is this?",
+    #             extractedIntelligence=current_intel
+    #         )
+
     if not is_scam_confirmed:
         detector = get_detector_agent()
-        try:
-            raw_response = detector.run(user_text).content
-            detection_data = json.loads(clean_json_str(raw_response))
-            
+        detection_data = {}
+        
+        # RETRY LOGIC: Try twice to get valid JSON
+        for attempt in range(2):
+            try:
+                raw_response = detector.run(user_text).content
+                detection_data = json.loads(clean_json_str(raw_response))
+                break # Success! Exit loop
+            except json.JSONDecodeError:
+                logger.warning(f"Detector JSON failed (Attempt {attempt+1}). Retrying...")
+                if attempt == 1: # If last attempt failed
+                    logger.error(f"Detector Failed completely.")
+        
+        # Proceed only if we got data
+        if detection_data:
+            # Safe access
             is_scam = detection_data.get("is_scam", False)
             reasoning = detection_data.get("reasoning", "Unknown")
-            # NEW: Capture dynamic notes
             behavior_summary = detection_data.get("behavior_summary", "Scam intent detected.")
             
             if is_scam:
                 is_scam_confirmed = True
                 state_service.set_scam_status(session_id, True)
-                current_agent_notes = behavior_summary # Update notes
+                current_agent_notes = behavior_summary 
                 logger.info(f"Session {session_id}: SCAM DETECTED. Notes: {behavior_summary}")
             else:
                 return AgentResponse(
@@ -392,14 +436,15 @@ async def chat_endpoint(
                     response_text="Sorry, I think you have the wrong number.",
                     extractedIntelligence=current_intel
                 )
-        except Exception as e:
-            logger.error(f"Detector Failed: {e}")
-            return AgentResponse(
+        else:
+             # Fallback if 2 retries failed
+             return AgentResponse(
                 status="success",
                 scamDetected=False,
                 response_text="Hello? Who is this?",
                 extractedIntelligence=current_intel
             )
+#-----------------------------------------------------------------------------------------------------------
     else:
         # If scam was ALREADY confirmed in previous turns, we keep the previous status
         # Ideally, we should persist the 'behavior_summary' in Redis too, 
@@ -408,17 +453,43 @@ async def chat_endpoint(
         current_agent_notes = "Scam previously detected. Engaging agent."
 
     # 3. Intelligence Extraction
+
+#---------------------------------------------------------------------------------------------------------------
+    # try:
+    #     extractor = get_extractor_agent()
+    #     raw_intel = extractor.run(user_text).content
+    #     new_intel_dict = json.loads(clean_json_str(raw_intel))
+        
+    #     # Merge
+    #     new_intel_model = ExtractedIntelligence(**new_intel_dict)
+    #     current_intel = state_service.update_intelligence(session_id, new_intel_model)
+    # except Exception as e:
+    #     logger.error(f"Extraction failed: {e}")
+    #     # Continue without updating intel - do not crash
+
     try:
         extractor = get_extractor_agent()
-        raw_intel = extractor.run(user_text).content
-        new_intel_dict = json.loads(clean_json_str(raw_intel))
+        new_intel_dict = {}
         
-        # Merge
-        new_intel_model = ExtractedIntelligence(**new_intel_dict)
-        current_intel = state_service.update_intelligence(session_id, new_intel_model)
+        # RETRY LOGIC
+        for attempt in range(2):
+            try:
+                raw_intel = extractor.run(user_text).content
+                new_intel_dict = json.loads(clean_json_str(raw_intel))
+                break
+            except json.JSONDecodeError:
+                 logger.warning(f"Extractor JSON failed (Attempt {attempt+1}). Retrying...")
+        
+        if new_intel_dict:
+            # Merge
+            new_intel_model = ExtractedIntelligence(**new_intel_dict)
+            current_intel = state_service.update_intelligence(session_id, new_intel_model)
+            
     except Exception as e:
-        logger.error(f"Extraction failed: {e}")
+        logger.error(f"Extraction logic error: {e}")
         # Continue without updating intel - do not crash
+
+#-------------------------------------------------------------------------------------------------------------------
 
     # 4. Generate Persona Response
     try:
