@@ -1,59 +1,16 @@
-# from pydantic import BaseModel, Field
-# from typing import List, Optional, Any
-
-# # --- GUVI Input Format ---
-# class MessageItem(BaseModel):
-#     sender: str  # "scammer" or "user" (agent)
-#     text: str
-#     timestamp: str
-
-# class IncomingMessage(BaseModel):
-#     sessionId: str
-#     message: MessageItem
-#     conversationHistory: List[MessageItem]
-#     metadata: Optional[dict] = {}
-
-# # --- GUVI Output Format ---
-# class EngagementMetrics(BaseModel):
-#     engagementDurationSeconds: int = 0
-#     totalMessagesExchanged: int = 0
-
-# class ExtractedIntelligence(BaseModel):
-#     bankAccounts: List[str] = []
-#     upiIds: List[str] = []
-#     phishingLinks: List[str] = []
-#     phoneNumbers: List[str] = []
-#     suspiciousKeywords: List[str] = []
-
-# class AgentResponse(BaseModel):
-#     status: str = "success"
-#     scamDetected: bool
-#     engagementMetrics: Optional[EngagementMetrics] = None
-#     extractedIntelligence: Optional[ExtractedIntelligence] = None
-#     agentNotes: Optional[str] = None
-#     # Note: "message" (the actual text reply) isn't explicitly asked for 
-#     # in the PDF's *JSON Response* section (Page 10), 
-#     # but logically we MUST return the text reply to continue the chat.
-#     # We will include it to be safe, or headers if the API expects it differently.
-#     response_text: str = Field(..., description="The agent's reply text")
-
 from pydantic import BaseModel, Field
-from typing import List, Optional
-from datetime import datetime
+from typing import List, Optional, Any
 
-# --- GUVI Input Format (RELAXED) ---
+# --- GUVI Input Format ---
 class MessageItem(BaseModel):
-    sender: str  # "scammer" or "user"
+    sender: str  # "scammer" or "user" (agent)
     text: str
-    # Relaxed: Allow missing timestamp (auto-fill it)
-    timestamp: Optional[str] = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    timestamp: str
 
 class IncomingMessage(BaseModel):
     sessionId: str
     message: MessageItem
-    # Relaxed: Allow missing history (default to empty list)
-    conversationHistory: Optional[List[MessageItem]] = []
-    # Relaxed: Allow missing metadata
+    conversationHistory: List[MessageItem]
     metadata: Optional[dict] = {}
 
 # --- GUVI Output Format ---
@@ -74,4 +31,8 @@ class AgentResponse(BaseModel):
     engagementMetrics: Optional[EngagementMetrics] = None
     extractedIntelligence: Optional[ExtractedIntelligence] = None
     agentNotes: Optional[str] = None
+    # Note: "message" (the actual text reply) isn't explicitly asked for 
+    # in the PDF's *JSON Response* section (Page 10), 
+    # but logically we MUST return the text reply to continue the chat.
+    # We will include it to be safe, or headers if the API expects it differently.
     response_text: str = Field(..., description="The agent's reply text")
