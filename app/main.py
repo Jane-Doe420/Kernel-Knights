@@ -287,6 +287,13 @@ from app.agents.detector import get_detector_agent
 from app.agents.persona import get_persona_agent
 from app.agents.extractor import get_extractor_agent
 
+#------------------------------------------------------------------------------------------------------------
+from fastapi.exceptions import RequestValidationError
+from fastapi import Request
+from fastapi.responses import JSONResponse
+#------------------------------------------------------------------------------------------------------------
+
+
 # Logging Setup
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("guvi-honeypot")
@@ -492,5 +499,26 @@ async def chat_endpoint(
         # agentNotes="Engaging...",
         agentNotes=current_agent_notes,
         response_text=agent_reply_text # Fixed field name
-
     )
+
+
+# --- DEBUG HANDLER (ADD THIS) ---
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """
+    If GUVI sends invalid JSON, this logs exactly what they sent 
+    so we can fix our schema.
+    """
+    body = await request.body()
+    error_msg = f"VALIDATION ERROR: {exc}"
+    body_content = body.decode()
+    logger.error("--- 422 ERROR DEBUG ---")
+    logger.error(error_msg)
+    logger.error(f"INCOMING BODY: {body_content}")
+    logger.error("-----------------------")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": str(exc), "body_received": body_content},
+    )
+
+state_service = StateService()
