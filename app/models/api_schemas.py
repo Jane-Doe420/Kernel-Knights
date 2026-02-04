@@ -106,10 +106,28 @@ class ExtractedIntelligence(BaseModel):
     phoneNumbers: List[str] = []
     suspiciousKeywords: List[str] = []
 
+#------------------------------------------------------------------------------------------------------------------
+
+# class AgentResponse(BaseModel):
+#     status: str = "success"
+#     scamDetected: bool
+#     engagementMetrics: Optional[EngagementMetrics] = None
+#     extractedIntelligence: Optional[ExtractedIntelligence] = None
+#     agentNotes: Optional[str] = None
+#     response_text: str = Field(..., description="The agent's reply text")
+
+
+
+# ... (Keep MessageItem, IncomingMessage, EngagementMetrics, ExtractedIntelligence as they are) ...
+
+# REPLACE ONLY THE AgentResponse CLASS
 class AgentResponse(BaseModel):
     status: str = "success"
-    scamDetected: bool
-    engagementMetrics: Optional[EngagementMetrics] = None
-    extractedIntelligence: Optional[ExtractedIntelligence] = None
-    agentNotes: Optional[str] = None
-    response_text: str = Field(..., description="The agent's reply text")
+    reply: str = Field(..., description="The agent's reply text")
+    
+    # REMOVED: scamDetected, engagementMetrics, extractedIntelligence, agentNotes
+    # REASON: These belong in the Callback, not the Chat Response.
+    # RENAMED: response_text -> reply (Per Email Requirement)
+
+
+#-----------------------------------------------------------------------------------------------------------------
