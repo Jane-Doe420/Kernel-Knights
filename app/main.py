@@ -440,17 +440,19 @@ async def chat_endpoint(
             else:
                 return AgentResponse(
                     status="success",
-                    scamDetected=False,
-                    response_text="Sorry, I think you have the wrong number.",
-                    extractedIntelligence=current_intel
+                    # scamDetected=False,
+                    # response_text="Sorry, I think you have the wrong number.",
+                    reply="Sorry, I think you have the wrong number."
+                    # extractedIntelligence=current_intel
                 )
         else:
              # Fallback if 2 retries failed
              return AgentResponse(
                 status="success",
-                scamDetected=False,
-                response_text="Hello? Who is this?",
-                extractedIntelligence=current_intel
+                # scamDetected=False,
+                # response_text="Hello? Who is this?",
+                reply="Hello? Who is this?"
+                # extractedIntelligence=current_intel
             )
 #-----------------------------------------------------------------------------------------------------------
     else:
@@ -572,12 +574,13 @@ async def chat_endpoint(
     # 6. Return Response
     return AgentResponse(
         status="success",
-        scamDetected=is_scam_confirmed,
-        extractedIntelligence=current_intel,
-        engagementMetrics=engagement_metrics,
+        # scamDetected=is_scam_confirmed,
+        # extractedIntelligence=current_intel,
+        # engagementMetrics=engagement_metrics,
         # agentNotes="Engaging...",
-        agentNotes=current_agent_notes,
-        response_text=agent_reply_text # Fixed field name
+        # agentNotes=current_agent_notes,
+        # response_text=agent_reply_text # Fixed field name
+        reply=agent_reply_text 
     )
 
 
